@@ -14,12 +14,25 @@ local writingTools = {
 }
 
 local function getPlayerModData(player)
-    if not player then return {} end
+    if not player then return { tasks = {}, nextTaskId = 1 } end
     local data = player:getModData()
     if not data.ZomboidTodo then
         data.ZomboidTodo = { tasks = {}, nextTaskId = 1 }
     end
     return data.ZomboidTodo
+end
+
+local function collectionToTable(collection)
+    if not collection then return {} end
+    if type(collection) == "table" then
+        return collection
+    end
+
+    local list = {}
+    for i = 0, collection:size() - 1 do
+        table.insert(list, collection:get(i))
+    end
+    return list
 end
 
 local function trim(text)
@@ -35,8 +48,7 @@ function ZT_Tasks.hasWritingTool(player)
     if not player then return false end
     local inventory = player:getInventory()
     if not inventory then return false end
-    for i = 0, inventory:getItems():size() - 1 do
-        local item = inventory:getItems():get(i)
+    for _, item in ipairs(collectionToTable(inventory:getItems())) do
         if item and writingTools[item:getFullType()] then
             return true
         end
@@ -48,8 +60,7 @@ function ZT_Tasks.hasNotebook(player)
     if not player then return false end
     local inventory = player:getInventory()
     if not inventory then return false end
-    for i = 0, inventory:getItems():size() - 1 do
-        local item = inventory:getItems():get(i)
+    for _, item in ipairs(collectionToTable(inventory:getItems())) do
         if item and ZT_Tasks.isNotebookItem(item) then
             return true
         end

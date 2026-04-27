@@ -2,6 +2,19 @@ require "ZT_Tasks"
 
 ZomboidTodoWindow = ISCollapsableWindow:derive("ZomboidTodoWindow")
 
+local function collectionToTable(collection)
+    if not collection then return {} end
+    if type(collection) == "table" then
+        return collection
+    end
+
+    local list = {}
+    for i = 0, collection:size() - 1 do
+        table.insert(list, collection:get(i))
+    end
+    return list
+end
+
 function ZomboidTodoWindow:createChildren()
     local margin = 10
     local inputHeight = 24
@@ -65,15 +78,17 @@ end
 
 function ZomboidTodoWindow:createTaskRows()
     local panel = self.taskListPanel
+    if not panel then return end
+
     local children = {}
-    for _, child in ipairs(panel:getChildren()) do
+    for _, child in ipairs(collectionToTable(panel:getChildren())) do
         table.insert(children, child)
     end
     for _, child in ipairs(children) do
         panel:removeChild(child)
     end
 
-    local tasks = ZT_Tasks.getTasks(self.player)
+    local tasks = ZT_Tasks.getTasks(self.player) or {}
     local rowHeight = 28
     local width = panel:getWidth()
     local buttonWidth = 50
@@ -100,7 +115,9 @@ function ZomboidTodoWindow:createTaskRows()
 end
 
 function ZomboidTodoWindow:refresh()
-    if not self.player then return end
+    if not self.player or not self.taskTextEntry or not self.addButton or not self.statusLabel then
+        return
+    end
 
     local canModify = ZT_Tasks.hasWritingTool(self.player)
     self.taskTextEntry:setEditable(canModify)
