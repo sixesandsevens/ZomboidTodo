@@ -15,6 +15,22 @@ local function collectionToTable(collection)
     return list
 end
 
+local function trim(text)
+    if not text then return "" end
+    return string.gsub(text, "^%s*(.-)%s*$", "%1")
+end
+
+local function setButtonText(button, text)
+    if not button then return end
+    if button.setTitle then
+        button:setTitle(text)
+    elseif button.setText then
+        button:setText(text)
+    else
+        button.title = text
+    end
+end
+
 function ZomboidTodoWindow:createChildren()
     ISCollapsableWindow.createChildren(self)
 
@@ -48,16 +64,46 @@ function ZomboidTodoWindow:createChildren()
     self:refresh()
 end
 
+function ZomboidTodoWindow:setStatus(text)
+    if not self.statusLabel then return end
+    if self.statusLabel.setText then
+        self.statusLabel:setText(text)
+    elseif self.statusLabel.setName then
+        self.statusLabel:setName(text)
+    elseif self.statusLabel.name ~= nil then
+        self.statusLabel.name = text
+    end
+end
+
+function ZomboidTodoWindow:updateAddButtonLabel()
+    setButtonText(self.addButton, self.editingTaskId and "Save" or "Add")
+end
+
 function ZomboidTodoWindow:onAddTask(button)
     if not self.player or not ZT_Tasks.hasWritingTool(self.player) then
+        self:setStatus("You need a pen or pencil to edit tasks.")
         return
     end
 
-    local text = self.taskTextEntry:getText() or self.taskTextEntry:getInternalText()
-    if text and ZT_Tasks.addTask(self.player, text) then
-        self.taskTextEntry:setText("")
-        self:refresh()
+    local text = trim(self.taskTextEntry:getText() or self.taskTextEntry:getInternalText())
+    if text == "" then
+        return
     end
+
+    if self.editingTaskId then
+        if ZT_Tasks.updateTask(self.player, self.editingTaskId, text) then
+            self:setStatus("Task saved.")
+        end
+        self.editingTaskId = nil
+    else
+        if ZT_Tasks.addTask(self.player, text) then
+            self:setStatus("")
+        end
+    end
+
+    self.taskTextEntry:setText("")
+    self:updateAddButtonLabel()
+    self:refresh()
 end
 
 function ZomboidTodoWindow:onToggleTask(button)
@@ -69,12 +115,57 @@ function ZomboidTodoWindow:onToggleTask(button)
     end
 end
 
-function ZomboidTodoWindow:onDeleteTask(button)
-    if not self.player or not ZT_Tasks.hasWritingTool(self.player) then
+function ZomboidTodoWindow:onEditTask(button, taskId)
+    if not self.player then return end
+    if not ZT_Tasks.hasWritingTool(self.player) then
+        self:setStatus("You need a pen or pencil to edit tasks.")
         return
     end
-    if button and button.taskId and ZT_Tasks.removeTask(self.player, button.taskId) then
+
+    local task = ZT_Tasks.getTask(self.player, taskId)
+    if not task then return end
+
+    self.taskTextEntry:setText(task.text or "")
+    self.editingTaskId = taskId
+    self:updateAddButtonLabel()
+    self:setStatus("Editing task")
+end
+
+function ZomboidTodoWindow:onDeleteTaskFromMenu(button, taskId)
+    if not self.player then return end
+    if not ZT_Tasks.hasEraser(self.player) then
+        self:setStatus("You need an eraser to delete tasks.")
+        return
+    end
+
+    if ZT_Tasks.removeTask(self.player, taskId) then
+        self.editingTaskId = nil
+        self.taskTextEntry:setText("")
+        self:setStatus("Task deleted.")
+        self:updateAddButtonLabel()
         self:refresh()
+    end
+end
+
+function ZomboidTodoWindow:showTaskContextMenu(taskId, x, y)
+    if not self.player or not taskId then return end
+    if not ISContextMenu or not ISContextMenu.getNew then return end
+
+    local menu = ISContextMenu:getNew(self.player)
+    if not menu and self.player.getPlayerNum then
+        menu = ISContextMenu:getNew(self.player:getPlayerNum())
+    end
+    if not menu and getPlayerContextMenu and self.player.getPlayerNum then
+        menu = getPlayerContextMenu(self.player:getPlayerNum())
+    end
+    if not menu then return end
+    menu:addOption("Edit Task", self, ZomboidTodoWindow.onEditTask, taskId)
+    local deleteOption = menu:addOption("Delete Task", self, ZomboidTodoWindow.onDeleteTaskFromMenu, taskId)
+    if not ZT_Tasks.hasEraser(self.player) and menu.setEnable and deleteOption then
+        menu:setEnable(deleteOption, false)
+    end
+    if menu.addToUIManager then
+        menu:addToUIManager()
     end
 end
 
@@ -96,29 +187,28 @@ function ZomboidTodoWindow:createTaskRows()
     self:addChild(self.taskListPanel)
 
     local tasks = ZT_Tasks.getTasks(self.player) or {}
-    local rowHeight = 28
+    local rowHeight = 44
     local width = self.taskListPanel:getWidth()
-    local buttonWidth = 50
 
     for index, task in ipairs(tasks) do
-        local y = (index - 1) * (rowHeight + 4)
+        local y = (index - 1) * (rowHeight + 6)
         local labelText = (task.done and "[x] " or "[ ] ") .. task.text
-        local toggleButton = ISButton:new(0, y, width - buttonWidth - 4, rowHeight, labelText, self, ZomboidTodoWindow.onToggleTask)
+        local toggleButton = ISButton:new(0, y, width, rowHeight, labelText, self, ZomboidTodoWindow.onToggleTask)
         toggleButton.taskId = task.id
         toggleButton:initialise()
         toggleButton:instantiate()
-        toggleButton:setEnable(ZT_Tasks.hasWritingTool(self.player))
+        if task.done then
+            toggleButton.backgroundColor = { r = 0.15, g = 0.15, b = 0.15, a = 1 }
+        end
+        toggleButton.onRightMouseUp = function(btn, mx, my)
+            if btn and btn.target then
+                btn.target:showTaskContextMenu(btn.taskId, mx, my)
+            end
+        end
         self.taskListPanel:addChild(toggleButton)
-
-        local deleteButton = ISButton:new(width - buttonWidth, y, buttonWidth, rowHeight, "Delete", self, ZomboidTodoWindow.onDeleteTask)
-        deleteButton.taskId = task.id
-        deleteButton:initialise()
-        deleteButton:instantiate()
-        deleteButton:setEnable(ZT_Tasks.hasWritingTool(self.player))
-        self.taskListPanel:addChild(deleteButton)
     end
 
-    self.taskListPanel:setScrollHeight(#tasks * (rowHeight + 4))
+    self.taskListPanel:setScrollHeight(#tasks * (rowHeight + 6))
 end
 
 function ZomboidTodoWindow:refresh()
@@ -127,23 +217,19 @@ function ZomboidTodoWindow:refresh()
     end
 
     local canModify = ZT_Tasks.hasWritingTool(self.player) == true
+    local entryText = trim(self.taskTextEntry:getText() or self.taskTextEntry:getInternalText())
+    local hasText = entryText ~= ""
 
     self.taskTextEntry:setEditable(canModify)
-    self.addButton:setEnable(canModify)
+    self.addButton:setEnable(canModify and hasText)
+    self:updateAddButtonLabel()
 
     local statusText = ""
     if not canModify then
         statusText = "You need a pen or pencil to modify tasks."
     end
 
-    if self.statusLabel.setText then
-        self.statusLabel:setText(statusText)
-    elseif self.statusLabel.setName then
-        self.statusLabel:setName(statusText)
-    elseif self.statusLabel.name ~= nil then
-        self.statusLabel.name = statusText
-    end
-
+    self:setStatus(statusText)
     self:createTaskRows()
 end
 

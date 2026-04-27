@@ -13,6 +13,10 @@ local writingTools = {
     ["Base.BluePen"] = true,
 }
 
+local eraserTypes = {
+    ["Base.Eraser"] = true,
+}
+
 local function getPlayerModData(player)
     if not player then return { tasks = {}, nextTaskId = 1 } end
     local data = player:getModData()
@@ -81,10 +85,51 @@ function ZT_Tasks.hasNotebook(player)
     return false
 end
 
+function ZT_Tasks.hasEraser(player)
+    if not player then return false end
+    local inventory = player:getInventory()
+    if not inventory then return false end
+    for _, item in ipairs(collectionToTable(inventory:getItems())) do
+        if item and eraserTypes[item:getFullType()] then
+            return true
+        end
+    end
+    return false
+end
+
 function ZT_Tasks.getTasks(player)
     local data = getPlayerModData(player)
     data.tasks = data.tasks or {}
     return data.tasks
+end
+
+function ZT_Tasks.getTask(player, id)
+    local tasks = ZT_Tasks.getTasks(player)
+    local lookupId = tostring(id)
+    for index, task in ipairs(tasks) do
+        if tostring(task.id) == lookupId then
+            return task, index
+        end
+    end
+    return nil, nil
+end
+
+function ZT_Tasks.updateTask(player, taskId, newText)
+    local taskText = trim(newText)
+    if taskText == "" then
+        return false
+    end
+
+    local tasks = ZT_Tasks.getTasks(player)
+    local lookupId = tostring(taskId)
+    for _, task in ipairs(tasks) do
+        if tostring(task.id) == lookupId then
+            task.text = taskText
+            savePlayerData(player)
+            return true
+        end
+    end
+    return false
 end
 
 function ZT_Tasks.addTask(player, text)
