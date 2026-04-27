@@ -53,13 +53,17 @@ local function iterateItems(items)
     return function() return nil end
 end
 
-function ZT_ContextMenu.openTasks(playerNum)
+function ZT_ContextMenu.openTasks(playerNum, item)
     local player = getSpecificPlayer(playerNum)
     if not player then
         debugLog("openTasks: no player found for playerNum=", tostring(playerNum))
         return
     end
-    ZomboidTodo.openWindow(player)
+    if not item then
+        debugLog("openTasks: no item supplied for playerNum=", tostring(playerNum))
+        return
+    end
+    ZomboidTodo.openWindow(player, item)
 end
 
 function ZT_ContextMenu.onFillInventoryObjectContextMenu(playerNum, context, items)
@@ -77,9 +81,24 @@ function ZT_ContextMenu.onFillInventoryObjectContextMenu(playerNum, context, ite
 
         if item and ZT_Tasks.isNotebookItem(item) then
             debugLog("onFillInventoryObjectContextMenu: matched notebook item=", tostring(item:getFullType()))
-            context:addOption("Make To-Do List", item, function()
-                ZT_ContextMenu.openTasks(playerNum)
+            local label = ZT_Tasks.getLabel(item)
+            local openLabel = label and label ~= "" and "Open To-Do List: " .. label or "Make To-Do List"
+            context:addOption(openLabel, item, function()
+                ZT_ContextMenu.openTasks(playerNum, item)
             end)
+
+            local canRename = player and ZT_Tasks.hasWritingTool(player)
+            local renameLabel = canRename and "Rename To-Do List" or "Rename To-Do List (need pen/pencil)"
+            local renameOption = context:addOption(renameLabel, item, function()
+                if not canRename then return end
+                ZT_ContextMenu.openTasks(playerNum, item)
+                if ZomboidTodo.window then
+                    ZomboidTodo.window:beginEditLabel()
+                end
+            end)
+            if renameOption and not canRename and context.setOptionDisabled then
+                context:setOptionDisabled(renameOption, true)
+            end
             return
         end
     end

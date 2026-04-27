@@ -20,21 +20,6 @@ local eraserTypes = {
     ["Base.Eraser"] = true,
 }
 
-local function getPlayerModData(player)
-    if not player then return { tasks = {}, nextTaskId = 1 } end
-    local data = player:getModData()
-    if not data.ZomboidTodo then
-        data.ZomboidTodo = { tasks = {}, nextTaskId = 1 }
-    end
-    if type(data.ZomboidTodo.tasks) ~= "table" then
-        data.ZomboidTodo.tasks = {}
-    end
-    if type(data.ZomboidTodo.nextTaskId) ~= "number" then
-        data.ZomboidTodo.nextTaskId = 1
-    end
-    return data.ZomboidTodo
-end
-
 local function collectionToTable(collection)
     if not collection then return {} end
     if type(collection) == "table" then
@@ -53,11 +38,53 @@ local function trim(text)
     return string.gsub(text, "^%s*(.-)%s*$", "%1")
 end
 
-local function savePlayerData(player)
-    if not player then return end
-    if player.saveData then
-        pcall(function() player:saveData() end)
+local function saveItemData(item)
+    if not item then return end
+    if item.saveData then
+        pcall(function() item:saveData() end)
     end
+end
+
+local function getItemModData(item)
+    if not item then
+        return { label = "", tasks = {}, nextTaskId = 1 }
+    end
+
+    local data = item:getModData()
+    if not data.immersiveTodo then
+        data.immersiveTodo = { label = "", tasks = {}, nextTaskId = 1 }
+    end
+    if type(data.immersiveTodo.label) ~= "string" then
+        data.immersiveTodo.label = ""
+    end
+    if type(data.immersiveTodo.tasks) ~= "table" then
+        data.immersiveTodo.tasks = {}
+    end
+    if type(data.immersiveTodo.nextTaskId) ~= "number" then
+        data.immersiveTodo.nextTaskId = 1
+    end
+    return data.immersiveTodo
+end
+
+local function createTaskId()
+    return tostring(getTimestampMs()) .. "_" .. tostring(ZombRand(1000000))
+end
+
+function ZT_Tasks.getData(item)
+    return getItemModData(item)
+end
+
+function ZT_Tasks.getLabel(item)
+    local data = getItemModData(item)
+    return data.label or ""
+end
+
+function ZT_Tasks.setLabel(item, label)
+    if not item then return false end
+    local data = getItemModData(item)
+    data.label = trim(label)
+    saveItemData(item)
+    return true
 end
 
 function ZT_Tasks.isNotebookItem(item)
@@ -100,14 +127,14 @@ function ZT_Tasks.hasEraser(player)
     return false
 end
 
-function ZT_Tasks.getTasks(player)
-    local data = getPlayerModData(player)
+function ZT_Tasks.getTasks(item)
+    local data = getItemModData(item)
     data.tasks = data.tasks or {}
     return data.tasks
 end
 
-function ZT_Tasks.getTask(player, id)
-    local tasks = ZT_Tasks.getTasks(player)
+function ZT_Tasks.getTask(item, id)
+    local tasks = ZT_Tasks.getTasks(item)
     local lookupId = tostring(id)
     for index, task in ipairs(tasks) do
         if tostring(task.id) == lookupId then
@@ -117,42 +144,40 @@ function ZT_Tasks.getTask(player, id)
     return nil, nil
 end
 
-function ZT_Tasks.updateTask(player, taskId, newText)
+function ZT_Tasks.updateTask(item, taskId, newText)
     local taskText = trim(newText)
     if taskText == "" then
         return false
     end
 
-    local tasks = ZT_Tasks.getTasks(player)
+    local tasks = ZT_Tasks.getTasks(item)
     local lookupId = tostring(taskId)
     for _, task in ipairs(tasks) do
         if tostring(task.id) == lookupId then
             task.text = taskText
-            savePlayerData(player)
+            saveItemData(item)
             return true
         end
     end
     return false
 end
 
-function ZT_Tasks.addTask(player, text)
+function ZT_Tasks.addTask(item, text)
     local taskText = trim(text)
     if taskText == "" then
         return false
     end
 
-    local data = getPlayerModData(player)
+    local data = getItemModData(item)
     data.tasks = data.tasks or {}
-    data.nextTaskId = data.nextTaskId or 1
     local task = {
-        id = data.nextTaskId,
+        id = createTaskId(),
         text = taskText,
         done = false,
         createdAt = os.time(),
     }
-    data.nextTaskId = data.nextTaskId + 1
     table.insert(data.tasks, task)
-    savePlayerData(player)
+    saveItemData(item)
     return true
 end
 
@@ -166,24 +191,28 @@ local function findTaskIndex(tasks, id)
     return nil
 end
 
-function ZT_Tasks.toggleTask(player, id)
-    local tasks = ZT_Tasks.getTasks(player)
+function ZT_Tasks.toggleTask(item, id)
+    local tasks = ZT_Tasks.getTasks(item)
     local index = findTaskIndex(tasks, id)
     if index then
         tasks[index].done = not tasks[index].done
-        savePlayerData(player)
+        saveItemData(item)
         return true
     end
     return false
 end
 
-function ZT_Tasks.removeTask(player, id)
-    local tasks = ZT_Tasks.getTasks(player)
+function ZT_Tasks.removeTask(item, id)
+    local tasks = ZT_Tasks.getTasks(item)
     local index = findTaskIndex(tasks, id)
     if index then
         table.remove(tasks, index)
-        savePlayerData(player)
+        saveItemData(item)
         return true
     end
     return false
+end
+
+function ZT_Tasks.deleteTask(item, id)
+    return ZT_Tasks.removeTask(item, id)
 end

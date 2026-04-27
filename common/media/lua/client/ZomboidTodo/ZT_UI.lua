@@ -37,26 +37,32 @@ function ZomboidTodoWindow:createChildren()
     local margin = 10
     local inputHeight = 24
     local buttonWidth = 70
+    local renameWidth = 80
 
-    self.taskTextEntry = ISTextEntryBox:new("", margin, 30, self.width - margin * 2 - buttonWidth - 4, inputHeight)
+    self.taskTextEntry = ISTextEntryBox:new("", margin, 30, self.width - margin * 2 - buttonWidth - renameWidth - 8, inputHeight)
     self.taskTextEntry:initialise()
     self.taskTextEntry:instantiate()
     self.taskTextEntry:setText("")
     self:addChild(self.taskTextEntry)
+
+    self.renameButton = ISButton:new(self.width - margin - buttonWidth - renameWidth - 4, 30, renameWidth, inputHeight, "Rename", self, ZomboidTodoWindow.onRenameList)
+    self.renameButton:initialise()
+    self.renameButton:instantiate()
+    self:addChild(self.renameButton)
 
     self.addButton = ISButton:new(self.width - margin - buttonWidth, 30, buttonWidth, inputHeight, "Add", self, ZomboidTodoWindow.onAddTask)
     self.addButton:initialise()
     self.addButton:instantiate()
     self:addChild(self.addButton)
 
-    self.taskListPanel = ISPanel:new(margin, 60, self.width - margin * 2, self.height - 90)
+    self.taskListPanel = ISPanel:new(margin, 60, self.width - margin * 2, self.height - 100)
     self.taskListPanel:initialise()
     self.taskListPanel:instantiate()
     self.taskListPanel:setScrollChildren(true)
     self.taskListPanel:setScrollHeight(0)
     self:addChild(self.taskListPanel)
 
-    self.statusLabel = ISLabel:new(margin, self.height - 25, 20, "", 1, 1, 1, 1, UIFont.Small)
+    self.statusLabel = ISLabel:new(margin, self.height - 30, self.width - margin * 2, "", 1, 1, 1, 1, UIFont.Small)
     self.statusLabel:initialise()
     self.statusLabel:instantiate()
     self:addChild(self.statusLabel)
@@ -75,28 +81,98 @@ function ZomboidTodoWindow:setStatus(text)
     end
 end
 
+function ZomboidTodoWindow:getItemDisplayName()
+    if not self.item then
+        return "Paper"
+    end
+    if self.item.getDisplayName then
+        return self.item:getDisplayName()
+    end
+    if self.item.getName then
+        return self.item:getName()
+    end
+    return tostring(self.item:getFullType() or "Paper")
+end
+
+function ZomboidTodoWindow:updateWindowTitle()
+    if not self.item then return end
+    local windowTitle = "To-Do List"
+    local label = ZT_Tasks.getLabel(self.item)
+    if label and label ~= "" then
+        windowTitle = windowTitle .. ": " .. label
+    else
+        windowTitle = windowTitle .. ": " .. self:getItemDisplayName()
+    end
+    if self.setTitle then
+        self:setTitle(windowTitle)
+    else
+        self.title = windowTitle
+    end
+end
+
 function ZomboidTodoWindow:updateAddButtonLabel()
-    setButtonText(self.addButton, self.editingTaskId and "Save" or "Add")
+    local label = "Add"
+    if self.editingLabel then
+        label = "Save Name"
+    elseif self.editingTaskId then
+        label = "Save"
+    end
+    setButtonText(self.addButton, label)
+end
+
+function ZomboidTodoWindow:onRenameList(button)
+    if not self.player or not self.item then return end
+    if not ZT_Tasks.hasWritingTool(self.player) then
+        self:setStatus("You need a pen or pencil to rename this list.")
+        return
+    end
+
+    self.editingTaskId = nil
+    self.editingLabel = true
+    local label = ZT_Tasks.getLabel(self.item)
+    if not label or label == "" then
+        label = self:getItemDisplayName()
+    end
+    self.taskTextEntry:setText(label)
+    self:updateAddButtonLabel()
+    self:setStatus("Edit list name and click Save Name.")
 end
 
 function ZomboidTodoWindow:onAddTask(button)
-    if not self.player or not ZT_Tasks.hasWritingTool(self.player) then
-        self:setStatus("You need a pen or pencil to edit tasks.")
-        return
-    end
+    if not self.player or not self.item then return end
 
     local text = trim(self.taskTextEntry:getText() or self.taskTextEntry:getInternalText())
     if text == "" then
         return
     end
 
+    if self.editingLabel then
+        if not ZT_Tasks.hasWritingTool(self.player) then
+            self:setStatus("You need a pen or pencil to rename this list.")
+            return
+        end
+        if ZT_Tasks.setLabel(self.item, text) then
+            self.editingLabel = false
+            self.taskTextEntry:setText("")
+            self:updateAddButtonLabel()
+            self:refresh()
+            self:setStatus("List renamed.")
+        end
+        return
+    end
+
+    if not ZT_Tasks.hasWritingTool(self.player) then
+        self:setStatus("You need a pen or pencil to edit tasks.")
+        return
+    end
+
     if self.editingTaskId then
-        if ZT_Tasks.updateTask(self.player, self.editingTaskId, text) then
+        if ZT_Tasks.updateTask(self.item, self.editingTaskId, text) then
             self:setStatus("Task saved.")
         end
         self.editingTaskId = nil
     else
-        if ZT_Tasks.addTask(self.player, text) then
+        if ZT_Tasks.addTask(self.item, text) then
             self:setStatus("")
         end
     end
@@ -107,24 +183,25 @@ function ZomboidTodoWindow:onAddTask(button)
 end
 
 function ZomboidTodoWindow:onToggleTask(button)
-    if not self.player or not ZT_Tasks.hasWritingTool(self.player) then
+    if not self.player or not self.item or not ZT_Tasks.hasWritingTool(self.player) then
         return
     end
-    if button and button.taskId and ZT_Tasks.toggleTask(self.player, button.taskId) then
+    if button and button.taskId and ZT_Tasks.toggleTask(self.item, button.taskId) then
         self:refresh()
     end
 end
 
 function ZomboidTodoWindow:onEditTask(button, taskId)
-    if not self.player then return end
+    if not self.player or not self.item then return end
     if not ZT_Tasks.hasWritingTool(self.player) then
         self:setStatus("You need a pen or pencil to edit tasks.")
         return
     end
 
-    local task = ZT_Tasks.getTask(self.player, taskId)
+    local task = ZT_Tasks.getTask(self.item, taskId)
     if not task then return end
 
+    self.editingLabel = false
     self.taskTextEntry:setText(task.text or "")
     self.editingTaskId = taskId
     self:updateAddButtonLabel()
@@ -135,19 +212,24 @@ function ZomboidTodoWindow:beginEditTask(taskId)
     return self:onEditTask(nil, taskId)
 end
 
+function ZomboidTodoWindow:beginEditLabel()
+    return self:onRenameList(nil)
+end
+
 function ZomboidTodoWindow:deleteTaskById(taskId)
     return self:onDeleteTaskFromMenu(nil, taskId)
 end
 
 function ZomboidTodoWindow:onDeleteTaskFromMenu(button, taskId)
-    if not self.player then return end
+    if not self.player or not self.item then return end
     if not ZT_Tasks.hasEraser(self.player) then
         self:setStatus("You need an eraser to delete tasks.")
         return
     end
 
-    if ZT_Tasks.removeTask(self.player, taskId) then
+    if ZT_Tasks.removeTask(self.item, taskId) then
         self.editingTaskId = nil
+        self.editingLabel = false
         self.taskTextEntry:setText("")
         self:setStatus("Task deleted.")
         self:updateAddButtonLabel()
@@ -156,17 +238,14 @@ function ZomboidTodoWindow:onDeleteTaskFromMenu(button, taskId)
 end
 
 function ZomboidTodoWindow:showTaskContextMenu(taskId)
-    if not self.player or not taskId then return end
+    if not self.player or not self.item or not taskId then return end
 
     local playerNum = 0
     if self.player.getPlayerNum then
         playerNum = self.player:getPlayerNum()
     end
 
-    local x = getMouseX()
-    local y = getMouseY()
-
-    local menu = ISContextMenu.get(playerNum, x, y)
+    local menu = ISContextMenu.get(playerNum, getMouseX(), getMouseY())
     if not menu then return end
 
     local window = self
@@ -195,14 +274,14 @@ function ZomboidTodoWindow:createTaskRows()
     end
 
     local margin = 10
-    self.taskListPanel = ISPanel:new(margin, 60, self.width - margin * 2, self.height - 90)
+    self.taskListPanel = ISPanel:new(margin, 60, self.width - margin * 2, self.height - 100)
     self.taskListPanel:initialise()
     self.taskListPanel:instantiate()
     self.taskListPanel:setScrollChildren(true)
     self.taskListPanel:setScrollHeight(0)
     self:addChild(self.taskListPanel)
 
-    local tasks = ZT_Tasks.getTasks(self.player) or {}
+    local tasks = ZT_Tasks.getTasks(self.item) or {}
     local rowHeight = 44
     local width = self.taskListPanel:getWidth()
 
@@ -229,7 +308,7 @@ function ZomboidTodoWindow:createTaskRows()
 end
 
 function ZomboidTodoWindow:refresh()
-    if not self.player or not self.taskTextEntry or not self.addButton or not self.statusLabel then
+    if not self.player or not self.item or not self.taskTextEntry or not self.addButton or not self.renameButton or not self.statusLabel then
         return
     end
 
@@ -237,22 +316,38 @@ function ZomboidTodoWindow:refresh()
 
     self.taskTextEntry:setEditable(canModify)
     self.addButton:setEnable(canModify)
+    self.renameButton:setEnable(canModify)
     self:updateAddButtonLabel()
+    self:updateWindowTitle()
 
     local statusText = ""
     if not canModify then
         statusText = "You need a pen or pencil to modify tasks."
+    else
+        local displayName = self:getItemDisplayName()
+        local label = ZT_Tasks.getLabel(self.item)
+        if label and label ~= "" then
+            statusText = "Stored on: " .. displayName .. " — " .. label
+        else
+            statusText = "Stored on: " .. displayName
+        end
+        if self.item.getCount and self.item:getCount() > 1 then
+            statusText = statusText .. "  Tip: separate stacked paper items before making separate lists."
+        end
     end
 
     self:setStatus(statusText)
     self:createTaskRows()
 end
 
-function ZomboidTodoWindow:new(x, y, width, height, player)
+function ZomboidTodoWindow:new(x, y, width, height, player, item)
     local o = ISCollapsableWindow:new(x, y, width, height, "To-Do List", true)
     setmetatable(o, self)
     self.__index = self
     o.player = player
+    o.item = item
+    o.editingTaskId = nil
+    o.editingLabel = false
     o.backgroundColor = { r = 0.2, g = 0.2, b = 0.2, a = 0.9 }
     o.borderColor = { r = 0.4, g = 0.4, b = 0.4, a = 1 }
     return o
