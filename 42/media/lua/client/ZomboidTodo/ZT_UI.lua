@@ -1,4 +1,4 @@
-require "ZT_Tasks"
+require "ZomboidTodo/ZT_Tasks"
 
 ZomboidTodoWindow = ISCollapsableWindow:derive("ZomboidTodoWindow")
 
@@ -119,10 +119,22 @@ function ZomboidTodoWindow:refresh()
         return
     end
 
-    local canModify = ZT_Tasks.hasWritingTool(self.player)
+    local canModify = ZT_Tasks.hasWritingTool(self.player) == true
+
     self.taskTextEntry:setEditable(canModify)
     self.addButton:setEnable(canModify)
-    self.statusLabel:setText(canModify and "" or "You need a pen or pencil to modify tasks.")
+
+    local statusText = ""
+    if not canModify then
+        statusText = "You need a pen or pencil to modify tasks."
+    end
+
+    if self.statusLabel.setName then
+        self.statusLabel:setName(statusText)
+    elseif self.statusLabel.name ~= nil then
+        self.statusLabel.name = statusText
+    end
+
     self:createTaskRows()
 end
 
@@ -137,6 +149,10 @@ function ZomboidTodoWindow:new(x, y, width, height, player)
 end
 
 function ZomboidTodoWindow:close()
-    self:setVisible(false)
-    self:removeFromUIManager()
+    if self and self.setVisible then
+        self:setVisible(false)
+    end
+    if self and self.removeFromUIManager then
+        self:removeFromUIManager()
+    end
 end

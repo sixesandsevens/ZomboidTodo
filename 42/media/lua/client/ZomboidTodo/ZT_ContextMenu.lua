@@ -1,4 +1,4 @@
-require "ZT_Tasks"
+require "ZomboidTodo/ZT_Tasks"
 
 ZT_ContextMenu = {}
 
