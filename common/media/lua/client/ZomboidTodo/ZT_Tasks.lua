@@ -75,14 +75,25 @@ function ZT_Tasks.getData(item)
 end
 
 function ZT_Tasks.getLabel(item)
+    if not item then return nil end
     local data = getItemModData(item)
-    return data.label or ""
+    return data and data.label or nil
 end
 
 function ZT_Tasks.setLabel(item, label)
-    if not item then return false end
+    if not item or not label then return false end
+    local labelText = trim(label)
+    if labelText == "" then return false end
+
     local data = getItemModData(item)
-    data.label = trim(label)
+    data.label = labelText
+    -- TODO: future: optionally create/replace a custom named paper item so inventory shows the label
+    if item.setCustomName then
+        item:setCustomName(true)
+    end
+    if item.setName then
+        item:setName(labelText)
+    end
     saveItemData(item)
     return true
 end

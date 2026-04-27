@@ -37,25 +37,42 @@ function ZomboidTodoWindow:createChildren()
     local margin = 10
     local inputHeight = 24
     local buttonWidth = 70
-    local renameWidth = 80
+    local labelWidth = 80
+    local renameWidth = buttonWidth
 
-    self.taskTextEntry = ISTextEntryBox:new("", margin, 30, self.width - margin * 2 - buttonWidth - renameWidth - 8, inputHeight)
+    self.listNameLabel = ISLabel:new(margin, 30, labelWidth, "List Name:", 1, 1, 1, 1, UIFont.Small)
+    self.listNameLabel:initialise()
+    self.listNameLabel:instantiate()
+    self:addChild(self.listNameLabel)
+
+    self.listNameEntry = ISTextEntryBox:new(margin + labelWidth, 30, self.width - margin * 2 - labelWidth - renameWidth - 8, inputHeight)
+    self.listNameEntry:initialise()
+    self.listNameEntry:instantiate()
+    self.listNameEntry:setText("")
+    self:addChild(self.listNameEntry)
+
+    self.renameButton = ISButton:new(self.width - margin - renameWidth, 30, renameWidth, inputHeight, "Rename", self, ZomboidTodoWindow.onRenameList)
+    self.renameButton:initialise()
+    self.renameButton:instantiate()
+    self:addChild(self.renameButton)
+
+    self.taskLabel = ISLabel:new(margin, 64, labelWidth, "New task:", 1, 1, 1, 1, UIFont.Small)
+    self.taskLabel:initialise()
+    self.taskLabel:instantiate()
+    self:addChild(self.taskLabel)
+
+    self.taskTextEntry = ISTextEntryBox:new(margin + labelWidth, 64, self.width - margin * 2 - labelWidth - buttonWidth - 8, inputHeight)
     self.taskTextEntry:initialise()
     self.taskTextEntry:instantiate()
     self.taskTextEntry:setText("")
     self:addChild(self.taskTextEntry)
 
-    self.renameButton = ISButton:new(self.width - margin - buttonWidth - renameWidth - 4, 30, renameWidth, inputHeight, "Rename", self, ZomboidTodoWindow.onRenameList)
-    self.renameButton:initialise()
-    self.renameButton:instantiate()
-    self:addChild(self.renameButton)
-
-    self.addButton = ISButton:new(self.width - margin - buttonWidth, 30, buttonWidth, inputHeight, "Add", self, ZomboidTodoWindow.onAddTask)
+    self.addButton = ISButton:new(self.width - margin - buttonWidth, 64, buttonWidth, inputHeight, "Add", self, ZomboidTodoWindow.onAddTask)
     self.addButton:initialise()
     self.addButton:instantiate()
     self:addChild(self.addButton)
 
-    self.taskListPanel = ISPanel:new(margin, 60, self.width - margin * 2, self.height - 100)
+    self.taskListPanel = ISPanel:new(margin, 100, self.width - margin * 2, self.height - 110)
     self.taskListPanel:initialise()
     self.taskListPanel:instantiate()
     self.taskListPanel:setScrollChildren(true)
@@ -67,6 +84,7 @@ function ZomboidTodoWindow:createChildren()
     self.statusLabel:instantiate()
     self:addChild(self.statusLabel)
 
+    self:updateListNameEntry()
     self:refresh()
 end
 
@@ -110,11 +128,15 @@ function ZomboidTodoWindow:updateWindowTitle()
     end
 end
 
+function ZomboidTodoWindow:updateListNameEntry()
+    if not self.listNameEntry then return end
+    local label = ZT_Tasks.getLabel(self.item)
+    self.listNameEntry:setText(label or "")
+end
+
 function ZomboidTodoWindow:updateAddButtonLabel()
     local label = "Add"
-    if self.editingLabel then
-        label = "Save Name"
-    elseif self.editingTaskId then
+    if self.editingTaskId then
         label = "Save"
     end
     setButtonText(self.addButton, label)
@@ -127,15 +149,18 @@ function ZomboidTodoWindow:onRenameList(button)
         return
     end
 
-    self.editingTaskId = nil
-    self.editingLabel = true
-    local label = ZT_Tasks.getLabel(self.item)
-    if not label or label == "" then
-        label = self:getItemDisplayName()
+    local labelText = trim(self.listNameEntry:getText() or self.listNameEntry:getInternalText())
+    if labelText == "" then
+        self:setStatus("List name cannot be empty.")
+        return
     end
-    self.taskTextEntry:setText(label)
-    self:updateAddButtonLabel()
-    self:setStatus("Edit list name and click Save Name.")
+
+    if ZT_Tasks.setLabel(self.item, labelText) then
+        self:updateListNameEntry()
+        self:updateWindowTitle()
+        self:setStatus("List renamed.")
+        self:refresh()
+    end
 end
 
 function ZomboidTodoWindow:onAddTask(button)
@@ -143,21 +168,6 @@ function ZomboidTodoWindow:onAddTask(button)
 
     local text = trim(self.taskTextEntry:getText() or self.taskTextEntry:getInternalText())
     if text == "" then
-        return
-    end
-
-    if self.editingLabel then
-        if not ZT_Tasks.hasWritingTool(self.player) then
-            self:setStatus("You need a pen or pencil to rename this list.")
-            return
-        end
-        if ZT_Tasks.setLabel(self.item, text) then
-            self.editingLabel = false
-            self.taskTextEntry:setText("")
-            self:updateAddButtonLabel()
-            self:refresh()
-            self:setStatus("List renamed.")
-        end
         return
     end
 
@@ -201,19 +211,10 @@ function ZomboidTodoWindow:onEditTask(button, taskId)
     local task = ZT_Tasks.getTask(self.item, taskId)
     if not task then return end
 
-    self.editingLabel = false
     self.taskTextEntry:setText(task.text or "")
     self.editingTaskId = taskId
     self:updateAddButtonLabel()
     self:setStatus("Editing task")
-end
-
-function ZomboidTodoWindow:beginEditTask(taskId)
-    return self:onEditTask(nil, taskId)
-end
-
-function ZomboidTodoWindow:beginEditLabel()
-    return self:onRenameList(nil)
 end
 
 function ZomboidTodoWindow:deleteTaskById(taskId)
@@ -229,7 +230,6 @@ function ZomboidTodoWindow:onDeleteTaskFromMenu(button, taskId)
 
     if ZT_Tasks.removeTask(self.item, taskId) then
         self.editingTaskId = nil
-        self.editingLabel = false
         self.taskTextEntry:setText("")
         self:setStatus("Task deleted.")
         self:updateAddButtonLabel()
@@ -252,7 +252,7 @@ function ZomboidTodoWindow:showTaskContextMenu(taskId)
     local selectedTaskId = taskId
 
     menu:addOption("Edit Task", nil, function()
-        window:beginEditTask(selectedTaskId)
+        window:onEditTask(nil, selectedTaskId)
     end)
 
     local deleteOption = menu:addOption("Delete Task", nil, function()
@@ -274,7 +274,7 @@ function ZomboidTodoWindow:createTaskRows()
     end
 
     local margin = 10
-    self.taskListPanel = ISPanel:new(margin, 60, self.width - margin * 2, self.height - 100)
+    self.taskListPanel = ISPanel:new(margin, 100, self.width - margin * 2, self.height - 110)
     self.taskListPanel:initialise()
     self.taskListPanel:instantiate()
     self.taskListPanel:setScrollChildren(true)
@@ -314,6 +314,7 @@ function ZomboidTodoWindow:refresh()
 
     local canModify = ZT_Tasks.hasWritingTool(self.player) == true
 
+    self.listNameEntry:setEditable(canModify)
     self.taskTextEntry:setEditable(canModify)
     self.addButton:setEnable(canModify)
     self.renameButton:setEnable(canModify)
@@ -347,7 +348,6 @@ function ZomboidTodoWindow:new(x, y, width, height, player, item)
     o.player = player
     o.item = item
     o.editingTaskId = nil
-    o.editingLabel = false
     o.backgroundColor = { r = 0.2, g = 0.2, b = 0.2, a = 0.9 }
     o.borderColor = { r = 0.4, g = 0.4, b = 0.4, a = 1 }
     return o

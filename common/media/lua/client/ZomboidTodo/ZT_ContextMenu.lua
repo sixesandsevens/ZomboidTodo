@@ -86,19 +86,6 @@ function ZT_ContextMenu.onFillInventoryObjectContextMenu(playerNum, context, ite
             context:addOption(openLabel, item, function()
                 ZT_ContextMenu.openTasks(playerNum, item)
             end)
-
-            local canRename = player and ZT_Tasks.hasWritingTool(player)
-            local renameLabel = canRename and "Rename To-Do List" or "Rename To-Do List (need pen/pencil)"
-            local renameOption = context:addOption(renameLabel, item, function()
-                if not canRename then return end
-                ZT_ContextMenu.openTasks(playerNum, item)
-                if ZomboidTodo.window then
-                    ZomboidTodo.window:beginEditLabel()
-                end
-            end)
-            if renameOption and not canRename and context.setOptionDisabled then
-                context:setOptionDisabled(renameOption, true)
-            end
             return
         end
     end
