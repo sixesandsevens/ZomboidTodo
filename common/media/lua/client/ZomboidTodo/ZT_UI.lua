@@ -51,7 +51,7 @@ function ZomboidTodoWindow:onAddTask(button)
         return
     end
 
-    local text = self.taskTextEntry:getInternalText()
+    local text = self.taskTextEntry:getText() or self.taskTextEntry:getInternalText()
     if text and ZT_Tasks.addTask(self.player, text) then
         self.taskTextEntry:setText("")
         self:refresh()
@@ -86,6 +86,9 @@ function ZomboidTodoWindow:createTaskRows()
     end
     for _, child in ipairs(children) do
         panel:removeChild(child)
+        if child.removeFromUIManager then
+            child:removeFromUIManager()
+        end
     end
 
     local tasks = ZT_Tasks.getTasks(self.player) or {}
@@ -129,7 +132,9 @@ function ZomboidTodoWindow:refresh()
         statusText = "You need a pen or pencil to modify tasks."
     end
 
-    if self.statusLabel.setName then
+    if self.statusLabel.setText then
+        self.statusLabel:setText(statusText)
+    elseif self.statusLabel.setName then
         self.statusLabel:setName(statusText)
     elseif self.statusLabel.name ~= nil then
         self.statusLabel.name = statusText
@@ -154,5 +159,8 @@ function ZomboidTodoWindow:close()
     end
     if self and self.removeFromUIManager then
         self:removeFromUIManager()
+    end
+    if ISCollapsableWindow.close then
+        ISCollapsableWindow.close(self)
     end
 end

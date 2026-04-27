@@ -19,6 +19,12 @@ local function getPlayerModData(player)
     if not data.ZomboidTodo then
         data.ZomboidTodo = { tasks = {}, nextTaskId = 1 }
     end
+    if type(data.ZomboidTodo.tasks) ~= "table" then
+        data.ZomboidTodo.tasks = {}
+    end
+    if type(data.ZomboidTodo.nextTaskId) ~= "number" then
+        data.ZomboidTodo.nextTaskId = 1
+    end
     return data.ZomboidTodo
 end
 
@@ -69,7 +75,9 @@ function ZT_Tasks.hasNotebook(player)
 end
 
 function ZT_Tasks.getTasks(player)
-    return getPlayerModData(player).tasks
+    local data = getPlayerModData(player)
+    data.tasks = data.tasks or {}
+    return data.tasks
 end
 
 function ZT_Tasks.addTask(player, text)
@@ -79,8 +87,10 @@ function ZT_Tasks.addTask(player, text)
     end
 
     local data = getPlayerModData(player)
+    data.tasks = data.tasks or {}
+    data.nextTaskId = data.nextTaskId or 1
     local task = {
-        id = tostring(data.nextTaskId),
+        id = data.nextTaskId,
         text = taskText,
         done = false,
         createdAt = os.time(),
@@ -91,8 +101,9 @@ function ZT_Tasks.addTask(player, text)
 end
 
 local function findTaskIndex(tasks, id)
+    local lookupId = tostring(id)
     for index, task in ipairs(tasks) do
-        if task.id == id then
+        if tostring(task.id) == lookupId then
             return index
         end
     end

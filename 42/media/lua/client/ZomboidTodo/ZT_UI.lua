@@ -51,7 +51,7 @@ function ZomboidTodoWindow:onAddTask(button)
         return
     end
 
-    local text = self.taskTextEntry:getInternalText()
+    local text = self.taskTextEntry:getText() or self.taskTextEntry:getInternalText()
     if text and ZT_Tasks.addTask(self.player, text) then
         self.taskTextEntry:setText("")
         self:refresh()
@@ -62,7 +62,7 @@ function ZomboidTodoWindow:onToggleTask(button)
     if not self.player or not ZT_Tasks.hasWritingTool(self.player) then
         return
     end
-    if button.taskId and ZT_Tasks.toggleTask(self.player, button.taskId) then
+    if button and button.taskId and ZT_Tasks.toggleTask(self.player, button.taskId) then
         self:refresh()
     end
 end
@@ -71,7 +71,7 @@ function ZomboidTodoWindow:onDeleteTask(button)
     if not self.player or not ZT_Tasks.hasWritingTool(self.player) then
         return
     end
-    if button.taskId and ZT_Tasks.removeTask(self.player, button.taskId) then
+    if button and button.taskId and ZT_Tasks.removeTask(self.player, button.taskId) then
         self:refresh()
     end
 end
@@ -129,7 +129,9 @@ function ZomboidTodoWindow:refresh()
         statusText = "You need a pen or pencil to modify tasks."
     end
 
-    if self.statusLabel.setName then
+    if self.statusLabel.setText then
+        self.statusLabel:setText(statusText)
+    elseif self.statusLabel.setName then
         self.statusLabel:setName(statusText)
     elseif self.statusLabel.name ~= nil then
         self.statusLabel.name = statusText
@@ -154,5 +156,8 @@ function ZomboidTodoWindow:close()
     end
     if self and self.removeFromUIManager then
         self:removeFromUIManager()
+    end
+    if ISCollapsableWindow.close then
+        ISCollapsableWindow.close(self)
     end
 end
