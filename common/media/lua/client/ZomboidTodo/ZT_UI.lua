@@ -147,16 +147,20 @@ function ZomboidTodoWindow:onDeleteTaskFromMenu(button, taskId)
     end
 end
 
-function ZomboidTodoWindow:showTaskContextMenu(taskId, x, y)
+function ZomboidTodoWindow:showTaskContextMenu(taskId)
     if not self.player or not taskId then return end
     if not ISContextMenu or not ISContextMenu.getNew then return end
 
-    local menu = ISContextMenu:getNew(self.player)
-    if not menu and self.player.getPlayerNum then
-        menu = ISContextMenu:getNew(self.player:getPlayerNum())
+    local playerNum = self.player.getPlayerNum and self.player:getPlayerNum() or self.player
+    local x = getMouseX and getMouseX() or 0
+    local y = getMouseY and getMouseY() or 0
+
+    local menu = ISContextMenu:getNew(playerNum, x, y)
+    if not menu then
+        menu = ISContextMenu:getNew(playerNum)
     end
-    if not menu and getPlayerContextMenu and self.player.getPlayerNum then
-        menu = getPlayerContextMenu(self.player:getPlayerNum())
+    if not menu and getPlayerContextMenu then
+        menu = getPlayerContextMenu(playerNum)
     end
     if not menu then return end
     menu:addOption("Edit Task", self, ZomboidTodoWindow.onEditTask, taskId)
@@ -217,11 +221,9 @@ function ZomboidTodoWindow:refresh()
     end
 
     local canModify = ZT_Tasks.hasWritingTool(self.player) == true
-    local entryText = trim(self.taskTextEntry:getText() or self.taskTextEntry:getInternalText())
-    local hasText = entryText ~= ""
 
     self.taskTextEntry:setEditable(canModify)
-    self.addButton:setEnable(canModify and hasText)
+    self.addButton:setEnable(canModify)
     self:updateAddButtonLabel()
 
     local statusText = ""
