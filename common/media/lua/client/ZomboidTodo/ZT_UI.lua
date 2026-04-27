@@ -40,12 +40,7 @@ function ZomboidTodoWindow:createChildren()
     local labelWidth = 80
     local renameWidth = buttonWidth
 
-    self.listNameLabel = ISLabel:new(margin, 30, labelWidth, "List Name:", 1, 1, 1, 1, UIFont.Small)
-    self.listNameLabel:initialise()
-    self.listNameLabel:instantiate()
-    self:addChild(self.listNameLabel)
-
-    self.listNameEntry = ISTextEntryBox:new("", margin + labelWidth, 30, self.width - margin * 2 - labelWidth - renameWidth - 8, inputHeight)
+    self.listNameEntry = ISTextEntryBox:new("", margin, 30, self.width - margin * 2 - renameWidth - 8, inputHeight)
     self.listNameEntry:initialise()
     self.listNameEntry:instantiate()
     self.listNameEntry:setText("")
@@ -56,12 +51,7 @@ function ZomboidTodoWindow:createChildren()
     self.renameButton:instantiate()
     self:addChild(self.renameButton)
 
-    self.taskLabel = ISLabel:new(margin, 64, labelWidth, "New task:", 1, 1, 1, 1, UIFont.Small)
-    self.taskLabel:initialise()
-    self.taskLabel:instantiate()
-    self:addChild(self.taskLabel)
-
-    self.taskTextEntry = ISTextEntryBox:new("", margin + labelWidth, 64, self.width - margin * 2 - labelWidth - buttonWidth - 8, inputHeight)
+    self.taskTextEntry = ISTextEntryBox:new("", margin, 64, self.width - margin * 2 - buttonWidth - 8, inputHeight)
     self.taskTextEntry:initialise()
     self.taskTextEntry:instantiate()
     self.taskTextEntry:setText("")
@@ -78,6 +68,11 @@ function ZomboidTodoWindow:createChildren()
     self.taskListPanel:setScrollChildren(true)
     self.taskListPanel:setScrollHeight(0)
     self:addChild(self.taskListPanel)
+
+    self.toolStatusLabel = ISLabel:new(margin, self.height - 52, self.width - margin * 2, "", 1, 1, 1, 1, UIFont.Small)
+    self.toolStatusLabel:initialise()
+    self.toolStatusLabel:instantiate()
+    self:addChild(self.toolStatusLabel)
 
     self.statusLabel = ISLabel:new(margin, self.height - 30, self.width - margin * 2, "", 1, 1, 1, 1, UIFont.Small)
     self.statusLabel:initialise()
@@ -193,7 +188,11 @@ function ZomboidTodoWindow:onAddTask(button)
 end
 
 function ZomboidTodoWindow:onToggleTask(button)
-    if not self.player or not self.item or not ZT_Tasks.hasWritingTool(self.player) then
+    if not self.player or not self.item then
+        return
+    end
+    if not ZT_Tasks.hasWritingTool(self.player) then
+        self:setStatus("You need a pen or pencil to toggle tasks.")
         return
     end
     if button and button.taskId and ZT_Tasks.toggleTask(self.item, button.taskId) then
@@ -258,10 +257,6 @@ function ZomboidTodoWindow:showTaskContextMenu(taskId)
     local deleteOption = menu:addOption("Delete Task", nil, function()
         window:deleteTaskById(selectedTaskId)
     end)
-
-    if not ZT_Tasks.hasEraser(self.player) then
-        menu:setOptionDisabled(deleteOption, true)
-    end
 end
 
 function ZomboidTodoWindow:createTaskRows()
@@ -312,17 +307,28 @@ function ZomboidTodoWindow:refresh()
         return
     end
 
-    local canModify = ZT_Tasks.hasWritingTool(self.player) == true
+    local hasWriting = ZT_Tasks.hasWritingTool(self.player) == true
+    local hasEraser = ZT_Tasks.hasEraser(self.player) == true
 
-    self.listNameEntry:setEditable(canModify)
-    self.taskTextEntry:setEditable(canModify)
-    self.addButton:setEnable(canModify)
-    self.renameButton:setEnable(canModify)
     self:updateAddButtonLabel()
     self:updateWindowTitle()
 
+    local toolStatus
+    if not hasWriting and not hasEraser then
+        toolStatus = "Need a pencil/pen to write. Need an eraser to delete."
+    elseif not hasWriting then
+        toolStatus = "Need a pencil/pen to write. Eraser: " .. (hasEraser and "Present ✓" or "Missing")
+    elseif not hasEraser then
+        toolStatus = "Writing Tool: Pencil ✓. Need an eraser to delete."
+    else
+        toolStatus = "Writing Tool: Pencil ✓    Eraser: Present ✓"
+    end
+    if self.toolStatusLabel then
+        self.toolStatusLabel:setText(toolStatus)
+    end
+
     local statusText = ""
-    if not canModify then
+    if not hasWriting then
         statusText = "You need a pen or pencil to modify tasks."
     else
         local displayName = self:getItemDisplayName()
