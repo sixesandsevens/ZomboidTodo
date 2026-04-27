@@ -16,6 +16,8 @@ local function collectionToTable(collection)
 end
 
 function ZomboidTodoWindow:createChildren()
+    ISCollapsableWindow.createChildren(self)
+
     local margin = 10
     local inputHeight = 24
     local buttonWidth = 70
@@ -77,41 +79,46 @@ function ZomboidTodoWindow:onDeleteTask(button)
 end
 
 function ZomboidTodoWindow:createTaskRows()
-    local panel = self.taskListPanel
-    if not panel then return end
+    if self.taskListPanel then
+        self:removeChild(self.taskListPanel)
+        if self.taskListPanel.removeFromUIManager then
+            self.taskListPanel:removeFromUIManager()
+        end
+        self.taskListPanel = nil
+    end
 
-    local children = {}
-    for _, child in ipairs(collectionToTable(panel:getChildren())) do
-        table.insert(children, child)
-    end
-    for _, child in ipairs(children) do
-        panel:removeChild(child)
-    end
+    local margin = 10
+    self.taskListPanel = ISPanel:new(margin, 60, self.width - margin * 2, self.height - 90)
+    self.taskListPanel:initialise()
+    self.taskListPanel:instantiate()
+    self.taskListPanel:setScrollChildren(true)
+    self.taskListPanel:setScrollHeight(0)
+    self:addChild(self.taskListPanel)
 
     local tasks = ZT_Tasks.getTasks(self.player) or {}
     local rowHeight = 28
-    local width = panel:getWidth()
+    local width = self.taskListPanel:getWidth()
     local buttonWidth = 50
 
     for index, task in ipairs(tasks) do
         local y = (index - 1) * (rowHeight + 4)
-        local labelText = (task.done and "☑ " or "☐ ") .. task.text
+        local labelText = (task.done and "[x] " or "[ ] ") .. task.text
         local toggleButton = ISButton:new(0, y, width - buttonWidth - 4, rowHeight, labelText, self, ZomboidTodoWindow.onToggleTask)
         toggleButton.taskId = task.id
         toggleButton:initialise()
         toggleButton:instantiate()
         toggleButton:setEnable(ZT_Tasks.hasWritingTool(self.player))
-        panel:addChild(toggleButton)
+        self.taskListPanel:addChild(toggleButton)
 
         local deleteButton = ISButton:new(width - buttonWidth, y, buttonWidth, rowHeight, "Delete", self, ZomboidTodoWindow.onDeleteTask)
         deleteButton.taskId = task.id
         deleteButton:initialise()
         deleteButton:instantiate()
         deleteButton:setEnable(ZT_Tasks.hasWritingTool(self.player))
-        panel:addChild(deleteButton)
+        self.taskListPanel:addChild(deleteButton)
     end
 
-    panel:setScrollHeight(#tasks * (rowHeight + 4))
+    self.taskListPanel:setScrollHeight(#tasks * (rowHeight + 4))
 end
 
 function ZomboidTodoWindow:refresh()

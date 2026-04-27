@@ -46,6 +46,13 @@ local function trim(text)
     return string.gsub(text, "^%s*(.-)%s*$", "%1")
 end
 
+local function savePlayerData(player)
+    if not player then return end
+    if player.saveData then
+        pcall(function() player:saveData() end)
+    end
+end
+
 function ZT_Tasks.isNotebookItem(item)
     return item and notebookTypes[item:getFullType()]
 end
@@ -97,6 +104,7 @@ function ZT_Tasks.addTask(player, text)
     }
     data.nextTaskId = data.nextTaskId + 1
     table.insert(data.tasks, task)
+    savePlayerData(player)
     return true
 end
 
@@ -115,6 +123,7 @@ function ZT_Tasks.toggleTask(player, id)
     local index = findTaskIndex(tasks, id)
     if index then
         tasks[index].done = not tasks[index].done
+        savePlayerData(player)
         return true
     end
     return false
@@ -125,6 +134,7 @@ function ZT_Tasks.removeTask(player, id)
     local index = findTaskIndex(tasks, id)
     if index then
         table.remove(tasks, index)
+        savePlayerData(player)
         return true
     end
     return false
