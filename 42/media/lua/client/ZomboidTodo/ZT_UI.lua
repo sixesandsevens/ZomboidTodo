@@ -31,6 +31,17 @@ local function setButtonText(button, text)
     end
 end
 
+local function setLabelText(label, text)
+    if not label then return end
+    if label.setText then
+        label:setText(text)
+    elseif label.setName then
+        label:setName(text)
+    else
+        label.name = text
+    end
+end
+
 function ZomboidTodoWindow:createChildren()
     ISCollapsableWindow.createChildren(self)
 
@@ -84,14 +95,7 @@ function ZomboidTodoWindow:createChildren()
 end
 
 function ZomboidTodoWindow:setStatus(text)
-    if not self.statusLabel then return end
-    if self.statusLabel.setText then
-        self.statusLabel:setText(text)
-    elseif self.statusLabel.setName then
-        self.statusLabel:setName(text)
-    elseif self.statusLabel.name ~= nil then
-        self.statusLabel.name = text
-    end
+    setLabelText(self.statusLabel, text)
 end
 
 function ZomboidTodoWindow:getItemDisplayName()
@@ -317,15 +321,13 @@ function ZomboidTodoWindow:refresh()
     if not hasWriting and not hasEraser then
         toolStatus = "Need a pencil/pen to write. Need an eraser to delete."
     elseif not hasWriting then
-        toolStatus = "Need a pencil/pen to write. Eraser: " .. (hasEraser and "Present ✓" or "Missing")
+        toolStatus = "Need a pencil/pen to write. Eraser: " .. (hasEraser and "Present" or "Missing")
     elseif not hasEraser then
-        toolStatus = "Writing Tool: Pencil ✓. Need an eraser to delete."
+        toolStatus = "Writing Tool: Present. Need an eraser to delete."
     else
-        toolStatus = "Writing Tool: Pencil ✓    Eraser: Present ✓"
+        toolStatus = "Writing Tool: Present    Eraser: Present"
     end
-    if self.toolStatusLabel then
-        self.toolStatusLabel:setText(toolStatus)
-    end
+    setLabelText(self.toolStatusLabel, toolStatus)
 
     local statusText = ""
     if not hasWriting then
