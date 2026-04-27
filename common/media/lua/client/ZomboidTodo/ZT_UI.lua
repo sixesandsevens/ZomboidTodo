@@ -131,6 +131,14 @@ function ZomboidTodoWindow:onEditTask(button, taskId)
     self:setStatus("Editing task")
 end
 
+function ZomboidTodoWindow:beginEditTask(taskId)
+    return self:onEditTask(nil, taskId)
+end
+
+function ZomboidTodoWindow:deleteTaskById(taskId)
+    return self:onDeleteTaskFromMenu(nil, taskId)
+end
+
 function ZomboidTodoWindow:onDeleteTaskFromMenu(button, taskId)
     if not self.player then return end
     if not ZT_Tasks.hasEraser(self.player) then
@@ -149,24 +157,31 @@ end
 
 function ZomboidTodoWindow:showTaskContextMenu(taskId)
     if not self.player or not taskId then return end
-    if not ISContextMenu or not ISContextMenu.getNew then return end
 
-    local playerNum = self.player.getPlayerNum and self.player:getPlayerNum() or self.player
-    local x = getMouseX and getMouseX() or 0
-    local y = getMouseY and getMouseY() or 0
-
-    local menu = ISContextMenu.getNew(playerNum, x, y, 160, 80)
-    if not menu and getPlayerContextMenu then
-        menu = getPlayerContextMenu(playerNum)
+    local playerNum = 0
+    if self.player.getPlayerNum then
+        playerNum = self.player:getPlayerNum()
     end
+
+    local x = getMouseX()
+    local y = getMouseY()
+
+    local menu = ISContextMenu.get(playerNum, x, y)
     if not menu then return end
-    menu:addOption("Edit Task", self, ZomboidTodoWindow.onEditTask, taskId)
-    local deleteOption = menu:addOption("Delete Task", self, ZomboidTodoWindow.onDeleteTaskFromMenu, taskId)
-    if not ZT_Tasks.hasEraser(self.player) and menu.setEnable and deleteOption then
-        menu:setEnable(deleteOption, false)
-    end
-    if menu.addToUIManager then
-        menu:addToUIManager()
+
+    local window = self
+    local selectedTaskId = taskId
+
+    menu:addOption("Edit Task", nil, function()
+        window:beginEditTask(selectedTaskId)
+    end)
+
+    local deleteOption = menu:addOption("Delete Task", nil, function()
+        window:deleteTaskById(selectedTaskId)
+    end)
+
+    if not ZT_Tasks.hasEraser(self.player) then
+        menu:setOptionDisabled(deleteOption, true)
     end
 end
 
