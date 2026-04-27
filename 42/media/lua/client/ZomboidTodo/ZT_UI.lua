@@ -155,10 +155,7 @@ function ZomboidTodoWindow:showTaskContextMenu(taskId)
     local x = getMouseX and getMouseX() or 0
     local y = getMouseY and getMouseY() or 0
 
-    local menu = ISContextMenu:getNew(playerNum, x, y)
-    if not menu then
-        menu = ISContextMenu:getNew(playerNum)
-    end
+    local menu = ISContextMenu.getNew(x, y, 160, 80, playerNum)
     if not menu and getPlayerContextMenu then
         menu = getPlayerContextMenu(playerNum)
     end
