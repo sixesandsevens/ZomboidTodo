@@ -143,8 +143,8 @@ end
 
 function ZomboidTodoWindow:onRenameList(button)
     if not self.player or not self.item then return end
-    if not ZT_Tasks.hasWritingTool(self.player) then
-        self:setStatus("You need a pen or pencil to rename this list.")
+    if not ZT_Tasks.canModifyTasks(self.player) then
+        self:setStatus("Need a pen or pencil to edit this list.")
         return
     end
 
@@ -170,8 +170,8 @@ function ZomboidTodoWindow:onAddTask(button)
         return
     end
 
-    if not ZT_Tasks.hasWritingTool(self.player) then
-        self:setStatus("You need a pen or pencil to edit tasks.")
+    if not ZT_Tasks.canModifyTasks(self.player) then
+        self:setStatus("Need a pen or pencil to edit this list.")
         return
     end
 
@@ -195,8 +195,8 @@ function ZomboidTodoWindow:onToggleTask(button)
     if not self.player or not self.item then
         return
     end
-    if not ZT_Tasks.hasWritingTool(self.player) then
-        self:setStatus("You need a pen or pencil to toggle tasks.")
+    if not ZT_Tasks.canModifyTasks(self.player) then
+        self:setStatus("Need a pen or pencil to edit this list.")
         return
     end
     if button and button.taskId and ZT_Tasks.toggleTask(self.item, button.taskId) then
@@ -206,8 +206,8 @@ end
 
 function ZomboidTodoWindow:onEditTask(button, taskId)
     if not self.player or not self.item then return end
-    if not ZT_Tasks.hasWritingTool(self.player) then
-        self:setStatus("You need a pen or pencil to edit tasks.")
+    if not ZT_Tasks.canModifyTasks(self.player) then
+        self:setStatus("Need a pen or pencil to edit this list.")
         return
     end
 
@@ -226,8 +226,8 @@ end
 
 function ZomboidTodoWindow:onDeleteTaskFromMenu(button, taskId)
     if not self.player or not self.item then return end
-    if not ZT_Tasks.hasEraser(self.player) then
-        self:setStatus("You need an eraser to delete tasks.")
+    if not ZT_Tasks.canDeleteTasks(self.player) then
+        self:setStatus("Need an eraser to remove tasks.")
         return
     end
 
@@ -313,24 +313,30 @@ function ZomboidTodoWindow:refresh()
 
     local hasWriting = ZT_Tasks.hasWritingTool(self.player) == true
     local hasEraser = ZT_Tasks.hasEraser(self.player) == true
+    local requireWriting = ZT_Tasks.requireWritingTool()
+    local requireEraser = ZT_Tasks.requireEraser()
 
     self:updateAddButtonLabel()
     self:updateWindowTitle()
 
-    local toolStatus
-    if not hasWriting and not hasEraser then
-        toolStatus = "Need a pencil/pen to write. Need an eraser to delete."
-    elseif not hasWriting then
-        toolStatus = "Need a pencil/pen to write. Eraser: " .. (hasEraser and "Present" or "Missing")
-    elseif not hasEraser then
-        toolStatus = "Writing Tool: Present. Need an eraser to delete."
+    local writingStatus
+    if requireWriting then
+        writingStatus = hasWriting and "Writing Tool: Present" or "Need a pen or pencil to write."
     else
-        toolStatus = "Writing Tool: Present    Eraser: Present"
+        writingStatus = hasWriting and "Writing Tool: Present (optional)" or "Writing Tool: Optional"
     end
-    setLabelText(self.toolStatusLabel, toolStatus)
+
+    local eraserStatus
+    if requireEraser then
+        eraserStatus = hasEraser and "Eraser: Present" or "Need an eraser to delete."
+    else
+        eraserStatus = hasEraser and "Eraser: Present (optional)" or "Eraser: Optional"
+    end
+
+    setLabelText(self.toolStatusLabel, writingStatus .. "    " .. eraserStatus)
 
     local statusText = ""
-    if not hasWriting then
+    if requireWriting and not hasWriting then
         statusText = "You need a pen or pencil to modify tasks."
     else
         local displayName = self:getItemDisplayName()

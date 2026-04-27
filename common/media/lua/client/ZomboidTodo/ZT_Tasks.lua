@@ -38,6 +38,39 @@ local function trim(text)
     return string.gsub(text, "^%s*(.-)%s*$", "%1")
 end
 
+local function getSandboxValue(name, default)
+    if SandboxVars and SandboxVars.ZomboidTodo and SandboxVars.ZomboidTodo[name] ~= nil then
+        return SandboxVars.ZomboidTodo[name]
+    end
+    return default
+end
+
+function ZT_Tasks.getSupplySpawnRate()
+    return tonumber(getSandboxValue("SupplySpawnRate", 3)) or 3
+end
+
+function ZT_Tasks.requireWritingTool()
+    return getSandboxValue("RequireWritingTool", true) == true
+end
+
+function ZT_Tasks.requireEraser()
+    return getSandboxValue("RequireEraser", false) == true
+end
+
+function ZT_Tasks.canModifyTasks(player)
+    if not ZT_Tasks.requireWritingTool() then
+        return true
+    end
+    return ZT_Tasks.hasWritingTool(player)
+end
+
+function ZT_Tasks.canDeleteTasks(player)
+    if not ZT_Tasks.requireEraser() then
+        return true
+    end
+    return ZT_Tasks.hasEraser(player)
+end
+
 local function saveItemData(item)
     if not item then return end
     if item.saveData then
