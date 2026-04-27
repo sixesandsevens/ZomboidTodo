@@ -77,7 +77,7 @@ function ZT_ContextMenu.onFillInventoryObjectContextMenu(playerNum, context, ite
 
         if item and ZT_Tasks.isNotebookItem(item) then
             debugLog("onFillInventoryObjectContextMenu: matched notebook item=", tostring(item:getFullType()))
-            context:addOption("Open Survivor Tasks", item, function()
+            context:addOption("Make To-Do List", item, function()
                 ZT_ContextMenu.openTasks(playerNum)
             end)
             return

@@ -213,6 +213,7 @@ function ZomboidTodoWindow:createTaskRows()
         toggleButton.taskId = task.id
         toggleButton:initialise()
         toggleButton:instantiate()
+        toggleButton.titleLeft = true
         if task.done then
             toggleButton.backgroundColor = { r = 0.15, g = 0.15, b = 0.15, a = 1 }
         end
@@ -248,7 +249,7 @@ function ZomboidTodoWindow:refresh()
 end
 
 function ZomboidTodoWindow:new(x, y, width, height, player)
-    local o = ISCollapsableWindow:new(x, y, width, height, "Survivor Tasks", true)
+    local o = ISCollapsableWindow:new(x, y, width, height, "To-Do List", true)
     setmetatable(o, self)
     self.__index = self
     o.player = player

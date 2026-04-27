@@ -4,6 +4,9 @@ local notebookTypes = {
     ["Base.Notebook"] = true,
     ["Base.Journal"] = true,
     ["Base.Diary"] = true,
+    ["Base.Notepad"] = true,
+    ["Base.Note"] = true,
+    ["Base.SheetOfPaper"] = true,
 }
 
 local writingTools = {
