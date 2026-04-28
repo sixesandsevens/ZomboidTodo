@@ -1,5 +1,8 @@
 ZT_Tasks = {}
 
+local DEBUG_SANDBOX = true
+local loggedSandboxValues = {}
+
 local notebookTypes = {
     ["Base.Notebook"] = true,
     ["Base.Journal"] = true,
@@ -38,15 +41,29 @@ local function trim(text)
     return string.gsub(text, "^%s*(.-)%s*$", "%1")
 end
 
+local function debugSandbox(...)
+    if DEBUG_SANDBOX and print then
+        print("[ZomboidTodo.Sandbox]", ...)
+    end
+end
+
 local function getSandboxValue(name, default)
     if SandboxVars and SandboxVars.ZomboidTodo and SandboxVars.ZomboidTodo[name] ~= nil then
+        if not loggedSandboxValues[name] then
+            debugSandbox(name, "=", tostring(SandboxVars.ZomboidTodo[name]))
+            loggedSandboxValues[name] = true
+        end
         return SandboxVars.ZomboidTodo[name]
+    end
+    if not loggedSandboxValues[name] then
+        debugSandbox(name, "missing; using default", tostring(default))
+        loggedSandboxValues[name] = true
     end
     return default
 end
 
 function ZT_Tasks.getSupplySpawnRate()
-    return tonumber(getSandboxValue("SupplySpawnRate", 3)) or 3
+    return tonumber(getSandboxValue("SupplySpawnRate", 4)) or 4
 end
 
 function ZT_Tasks.requireWritingTool()
@@ -55,6 +72,23 @@ end
 
 function ZT_Tasks.requireEraser()
     return getSandboxValue("RequireEraser", false) == true
+end
+
+local function dumpSandboxOptions()
+    if SandboxVars and SandboxVars.ZomboidTodo then
+        debugSandbox(
+            "loaded",
+            "SupplySpawnRate=" .. tostring(SandboxVars.ZomboidTodo.SupplySpawnRate),
+            "RequireWritingTool=" .. tostring(SandboxVars.ZomboidTodo.RequireWritingTool),
+            "RequireEraser=" .. tostring(SandboxVars.ZomboidTodo.RequireEraser)
+        )
+    else
+        debugSandbox("SandboxVars.ZomboidTodo missing on client")
+    end
+end
+
+if Events and Events.OnGameStart then
+    Events.OnGameStart.Add(dumpSandboxOptions)
 end
 
 function ZT_Tasks.canModifyTasks(player)

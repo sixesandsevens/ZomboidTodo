@@ -1,6 +1,7 @@
 require "Items/Distributions"
 
-local DEBUG_LOOT = false
+local DEBUG_LOOT = true
+local loggedSandboxState = false
 
 local targetDistributions = {
     "OfficeDesk",
@@ -67,7 +68,16 @@ end
 
 local function getSupplyRate()
     if SandboxVars and SandboxVars.ZomboidTodo then
-        return tonumber(SandboxVars.ZomboidTodo.SupplySpawnRate) or 4
+        local value = tonumber(SandboxVars.ZomboidTodo.SupplySpawnRate) or 4
+        if not loggedSandboxState then
+            log("SupplySpawnRate =", tostring(SandboxVars.ZomboidTodo.SupplySpawnRate), "resolved", value)
+            loggedSandboxState = true
+        end
+        return value
+    end
+    if not loggedSandboxState then
+        log("SandboxVars.ZomboidTodo missing; using default SupplySpawnRate 4")
+        loggedSandboxState = true
     end
     return 4
 end
