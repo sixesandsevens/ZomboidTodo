@@ -1,0 +1,17 @@
+Sandbox_EN = {
+    Sandbox_ZomboidTodo = "Immersive Todo List",
+
+    Sandbox_ZomboidTodo_SupplySpawnRate = "Writing Supply Spawn Rate",
+    Sandbox_ZomboidTodo_SupplySpawnRate_tooltip = "Adjusts how often paper, notebooks, journals, pencils, pens, and erasers are added to common loot containers.",
+    Sandbox_ZomboidTodo_SupplySpawnRate_option1 = "Vanilla / Disabled",
+    Sandbox_ZomboidTodo_SupplySpawnRate_option2 = "Light Boost",
+    Sandbox_ZomboidTodo_SupplySpawnRate_option3 = "Normal Boost",
+    Sandbox_ZomboidTodo_SupplySpawnRate_option4 = "High Boost",
+    Sandbox_ZomboidTodo_SupplySpawnRate_option5 = "Very High Boost",
+
+    Sandbox_ZomboidTodo_RequireWritingTool = "Require Pencil or Pen",
+    Sandbox_ZomboidTodo_RequireWritingTool_tooltip = "When enabled, adding, renaming, or editing todo list entries requires a pencil or pen in the player's inventory.",
+
+    Sandbox_ZomboidTodo_RequireEraser = "Require Eraser for Deleting",
+    Sandbox_ZomboidTodo_RequireEraser_tooltip = "When enabled, deleting todo list entries requires an eraser in the player's inventory.",
+}
