@@ -85,6 +85,10 @@ local function dumpSandboxOptions()
     else
         debugSandbox("SandboxVars.ZomboidTodo missing on client")
     end
+    if getText then
+        debugSandbox("translation Sandbox_ZomboidTodo =", tostring(getText("Sandbox_ZomboidTodo")))
+        debugSandbox("translation Sandbox_ZomboidTodo_SupplySpawnRate =", tostring(getText("Sandbox_ZomboidTodo_SupplySpawnRate")))
+    end
 end
 
 if Events and Events.OnGameStart then
