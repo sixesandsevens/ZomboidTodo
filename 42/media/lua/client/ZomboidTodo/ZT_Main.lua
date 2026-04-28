@@ -8,11 +8,22 @@ ZomboidTodo.window = nil
 function ZomboidTodo.openWindow(player, item)
     if not player or not item then return end
 
+    local itemType = item.getFullType and item:getFullType() or tostring(item)
+    print("[ZomboidTodo] openWindow item=", tostring(itemType), "existingWindow=", tostring(ZomboidTodo.window))
+
     if ZomboidTodo.window then
-        if ZomboidTodo.window.player == player and ZomboidTodo.window.item == item then
+        local isVisible = true
+        if ZomboidTodo.window.getIsVisible then
+            isVisible = ZomboidTodo.window:getIsVisible()
+        elseif ZomboidTodo.window.isVisible then
+            isVisible = ZomboidTodo.window:isVisible()
+        end
+
+        if ZomboidTodo.window.player == player and ZomboidTodo.window.item == item and isVisible then
             ZomboidTodo.window:bringToTop()
             return ZomboidTodo.window
         end
+
         ZomboidTodo.window:close()
         ZomboidTodo.window = nil
     end

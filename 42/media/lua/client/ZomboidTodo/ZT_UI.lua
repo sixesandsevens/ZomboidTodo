@@ -368,6 +368,12 @@ function ZomboidTodoWindow:new(x, y, width, height, player, item)
 end
 
 function ZomboidTodoWindow:close()
+    print("[ZomboidTodo] closing todo window")
+
+    if ZomboidTodo and ZomboidTodo.window == self then
+        ZomboidTodo.window = nil
+    end
+
     if self and self.setVisible then
         self:setVisible(false)
     end
