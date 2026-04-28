@@ -9,7 +9,7 @@ local notebookTypes = {
     ["Base.Diary"] = true,
     ["Base.Notepad"] = true,
     ["Base.Note"] = true,
-    ["Base.SheetOfPaper"] = true,
+    ["Base.SheetPaper2"] = true,
 }
 
 local writingTools = {

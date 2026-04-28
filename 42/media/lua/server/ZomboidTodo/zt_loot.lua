@@ -1,34 +1,33 @@
-require "Items/Distributions"
+require "Items/ProceduralDistributions"
 
 local DEBUG_LOOT = true
 local loggedSandboxState = false
 
 local targetDistributions = {
     "OfficeDesk",
-    "DeskDrawer",
-    "FilingCabinet",
+    "OfficeDeskHome",
+    "OfficeDeskSecretary",
+    "OfficeDrawers",
+    "OfficeShelfSupplies",
+    "FilingCabinetGeneric",
     "SchoolLockers",
-    "Mail",
     "BookstoreBooks",
     "LibraryBooks",
-    "BedroomDrawers",
-    "KitchenDrawers",
-    "Counter",
-    "GloveBox",
-    "Bookshelf",
-    "BookstoreShelf",
-    "LibraryShelf",
+    "PostOfficeSupplies",
+    "LivingRoomShelf",
+    "ShelfGeneric",
+    "ClassroomDesk",
+    "ClassroomSecondaryDesk",
 }
 
 local baseWeights = {
-    ["Base.SheetOfPaper"] = 4,
-    ["Base.Paper"] = 4,
-    ["Base.Pencil"] = 3,
-    ["Base.Pen"] = 3,
-    ["Base.Notebook"] = 2,
-    ["Base.Notepad"] = 2,
-    ["Base.Journal"] = 1,
-    ["Base.Eraser"] = 1,
+    ["SheetPaper2"] = 4,
+    ["Pencil"] = 3,
+    ["Pen"] = 3,
+    ["Notebook"] = 2,
+    ["Notepad"] = 2,
+    ["Journal"] = 1,
+    ["Eraser"] = 1,
 }
 
 local rateMultipliers = {
@@ -47,7 +46,7 @@ local function log(...)
 end
 
 local function addItemToDistribution(distName, item, weight)
-    local dist = DistributionTable and DistributionTable[distName]
+    local dist = ProceduralDistributions and ProceduralDistributions.list and ProceduralDistributions.list[distName]
     if not dist or not dist.items then
         log("Skipping missing distribution:", distName)
         return
@@ -90,8 +89,8 @@ local function applyLootBoost()
         return
     end
 
-    if not DistributionTable then
-        log("DistributionTable not available")
+    if not ProceduralDistributions or not ProceduralDistributions.list then
+        log("ProceduralDistributions.list not available")
         return
     end
 
