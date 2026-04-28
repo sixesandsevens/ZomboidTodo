@@ -31,12 +31,12 @@ local baseWeights = {
 }
 
 local rateMultipliers = {
-    [1] = 0,
-    [2] = 0.5,
-    [3] = 1,
-    [4] = 2,
-    [5] = 4,
-    [6] = 8,
+    [1] = 0.05,
+    [2] = 0.2,
+    [3] = 0.6,
+    [4] = 1.0,
+    [5] = 2.0,
+    [6] = 3.0,
 }
 
 local function log(...)
@@ -83,7 +83,7 @@ end
 
 local function applyLootBoost()
     local rate = getSupplyRate()
-    local multiplier = rateMultipliers[rate] or 2
+    local multiplier = rateMultipliers[rate] or 1.0
     if multiplier <= 0 then
         log("SupplySpawnRate minimum, no changes applied")
         return
@@ -97,7 +97,7 @@ local function applyLootBoost()
     log("Applying loot boost for rate", rate, "multiplier", multiplier)
     for _, distName in ipairs(targetDistributions) do
         for item, baseWeight in pairs(baseWeights) do
-            local weight = math.max(1, math.floor(baseWeight * multiplier))
+            local weight = baseWeight * multiplier
             addItemToDistribution(distName, item, weight)
         end
     end
