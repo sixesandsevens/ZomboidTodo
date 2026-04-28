@@ -1,7 +1,7 @@
 VERSION = 1,
 
 option ZomboidTodo.SupplySpawnRate = {
-    type = enum, numValues=5, default = 3,
+    type = enum, numValues=6, default = 4,
     page = ZomboidTodo, translation = ZomboidTodo_SupplySpawnRate, valueTranslation = ZomboidTodo_SupplySpawnRate
 }
 

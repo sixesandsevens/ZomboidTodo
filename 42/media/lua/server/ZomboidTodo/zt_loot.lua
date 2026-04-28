@@ -31,10 +31,12 @@ local baseWeights = {
 }
 
 local rateMultipliers = {
-    [2] = 1,
-    [3] = 2,
-    [4] = 4,
-    [5] = 8,
+    [1] = 0,
+    [2] = 0.5,
+    [3] = 1,
+    [4] = 2,
+    [5] = 4,
+    [6] = 8,
 }
 
 local function log(...)
@@ -65,19 +67,19 @@ end
 
 local function getSupplyRate()
     if SandboxVars and SandboxVars.ZomboidTodo then
-        return tonumber(SandboxVars.ZomboidTodo.SupplySpawnRate) or 3
+        return tonumber(SandboxVars.ZomboidTodo.SupplySpawnRate) or 4
     end
-    return 3
+    return 4
 end
 
 local function applyLootBoost()
     local rate = getSupplyRate()
-    if rate == 1 then
-        log("SupplySpawnRate=Vanilla, no changes applied")
+    local multiplier = rateMultipliers[rate] or 2
+    if multiplier <= 0 then
+        log("SupplySpawnRate minimum, no changes applied")
         return
     end
 
-    local multiplier = rateMultipliers[rate] or 2
     if not DistributionTable then
         log("DistributionTable not available")
         return
