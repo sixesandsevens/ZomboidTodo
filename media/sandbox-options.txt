@@ -1,20 +1,16 @@
 VERSION = 1,
 
-option ZomboidTodo.SupplySpawnRate
-{
-    type = enum,
-    default = 3,
-    values = "Vanilla,Low,Normal,High,Very High",
+option ZomboidTodo.SupplySpawnRate = {
+    type = enum, numValues=5, default = 3,
+    page = ZomboidTodo, translation = ZomboidTodo_SupplySpawnRate, valueTranslation = ZomboidTodo_SupplySpawnRate,
 }
 
-option ZomboidTodo.RequireWritingTool
-{
-    type = boolean,
-    default = true,
+option ZomboidTodo.RequireWritingTool = {
+    type = boolean, default = true,
+    page = ZomboidTodo, translation = ZomboidTodo_RequireWritingTool,
 }
 
-option ZomboidTodo.RequireEraser
-{
-    type = boolean,
-    default = false,
+option ZomboidTodo.RequireEraser = {
+    type = boolean, default = false,
+    page = ZomboidTodo, translation = ZomboidTodo_RequireEraser,
 }

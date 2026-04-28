@@ -1,5 +1,5 @@
-name=Survivor Tasks
+name=Immersive Todo List
 id=ZomboidTodo
 description=Immersive task notebook for Project Zomboid. Requires a notebook/journal to open and a pen/pencil to modify tasks.
 version=1.0
-authors=Survivor Tasks Team
+poster=poster.png
